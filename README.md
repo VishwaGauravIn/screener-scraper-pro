@@ -1,6 +1,16 @@
-# Screener Scraper Pro
+<div align="center">
+ <h1> <img src="https://github.com/user-attachments/assets/cca40ba1-af34-4384-af1d-392f976328ea" width="80px"><br/>Screener Scraper Pro</h1>
+ <a href="https://itsvg.in" target="_blank"><img src="https://img.shields.io/badge/Creator-Vishwa%20Gaurav-blue"/></a> 
+ <img src="https://img.shields.io/npm/v/screener-scraper-pro?label=%20"/>
+ <img src="https://img.shields.io/npm/dt/screener-scraper-pro">
+ <img src="https://img.shields.io/snyk/vulnerabilities/github/VishwaGauravIn/screener-scraper-pro"/>
+ <img src="https://img.shields.io/badge/License-GPL%20v3-brightgreen"/>
+ <img src="https://img.shields.io/github/languages/code-size/VishwaGauravIn/screener-scraper-pro?logo=github">
+</div>
 
-Effortlessly scrape comprehensive financial data from [screener.in](https://www.screener.in) and use it in your projects. **No API key required.**
+&nbsp;
+<p align="center"> Effortlessly scrape comprehensive financial data from <a href="https://www.screener.in" target="_blank">screener.in</a> and use it in your projects. <b>No API key required.</b> </p>
+&nbsp;
 
 ## ✨ Features
 
