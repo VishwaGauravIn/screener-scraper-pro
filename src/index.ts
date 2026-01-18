@@ -1,6 +1,6 @@
 import * as cheerio from "cheerio";
 import { fetchPage } from "./adapter.js";
-import { getParsedDataFromHtml, processAbsoluteTable, processAnalysis, processDocuments } from "./helper.js";
+import { getParsedDataFromHtml, processAbsoluteTable, processAnalysis, processDocuments, processPnlToFindCAGRs } from "./helper.js";
 
 export async function ScreenerScraperPro(screenerUrl: string){
     try{
@@ -18,6 +18,7 @@ export async function ScreenerScraperPro(screenerUrl: string){
         let ratios = {};
         let shareholding = {};
         let documents = {};
+        let CAGRs = {}
 
         if(parsedDataFromHtml.analysis.length > 0){
             analysis = processAnalysis(parsedDataFromHtml.analysis);
@@ -50,6 +51,10 @@ export async function ScreenerScraperPro(screenerUrl: string){
         if(parsedDataFromHtml.documents.length > 0){
             documents = processDocuments(parsedDataFromHtml.documents);
         }
+
+        if(parsedDataFromHtml.profitLoss.length > 0){
+            CAGRs = processPnlToFindCAGRs(parsedDataFromHtml.profitLoss);
+        }
         
         return {
             analysis,
@@ -59,7 +64,8 @@ export async function ScreenerScraperPro(screenerUrl: string){
             cashFlow,
             ratios,
             shareholding,
-            documents
+            documents,
+            CAGRs
         }
     }catch(error){
         console.error(error); 

@@ -295,3 +295,69 @@ export function processDocuments(section: Cheerio<Element>) {
     return { announcements, annualReports, creditRatings, concalls };
 }
     
+export function processPnlToFindCAGRs(section: Cheerio<Element>) {
+    const cagrs: Record<string, Record<string, string>> = {};
+
+    section.find('table.ranges-table').each((_, table) => {
+        // Get table title from th
+        let title = '';
+        const thRow = table.children.find((child): child is Element => 
+            child.type === 'tag' && (child.name === 'tbody' || child.name === 'thead')
+        );
+        
+        if (thRow) {
+            const firstTr = thRow.children.find((child): child is Element => 
+                child.type === 'tag' && child.name === 'tr'
+            );
+            if (firstTr) {
+                const th = firstTr.children.find((child): child is Element => 
+                    child.type === 'tag' && child.name === 'th'
+                );
+                if (th?.firstChild && 'data' in th.firstChild) {
+                    title = th.firstChild.data?.trim() || '';
+                }
+            }
+        }
+
+        if (!title) return;
+
+        const data: Record<string, string> = {};
+
+        // Get tbody for data rows
+        const tbody = table.children.find((child): child is Element => 
+            child.type === 'tag' && child.name === 'tbody'
+        );
+
+        if (tbody) {
+            const rows = tbody.children.filter((child): child is Element => 
+                child.type === 'tag' && child.name === 'tr'
+            );
+
+            // Skip first row (header row with th)
+            for (const row of rows) {
+                const cells = row.children.filter((child): child is Element => 
+                    child.type === 'tag' && child.name === 'td'
+                );
+
+                if (cells.length >= 2) {
+                    const period = cells[0]?.firstChild && 'data' in cells[0].firstChild 
+                        ? cells[0].firstChild.data?.trim().replace(':', '') || ''
+                        : '';
+                    const value = cells[1]?.firstChild && 'data' in cells[1].firstChild 
+                        ? cells[1].firstChild.data?.trim() || ''
+                        : '';
+
+                    if (period && value) {
+                        data[period] = value;
+                    }
+                }
+            }
+        }
+
+        if (Object.keys(data).length > 0) {
+            cagrs[title] = data;
+        }
+    });
+
+    return cagrs;
+}
