@@ -30,3 +30,148 @@ export function processAnalysis(analysis: Cheerio<Element>) {
 
     return { pros, cons };
 }
+
+// peers data is loaded on the fly, so not using it for now ~VG
+// export function processPeers(peers: Cheerio<Element>) {
+//     const table = peers.find('table.data-table');
+    
+//     // Extract headers
+//     const headers: string[] = [];
+//     table.find('tbody tr:first-child th').each((_, th) => {
+//         const headerText = th.firstChild && 'data' in th.firstChild 
+//             ? th.firstChild.data?.trim() 
+//             : '';
+//         if (headerText) headers.push(headerText);
+//     });
+
+//     // Extract peer data rows
+//     const peerData: Record<string, string | number>[] = [];
+    
+//     table.find('tbody tr[data-row-company-id]').each((_, row) => {
+//         const cells = row.children.filter((child): child is Element => 
+//             child.type === 'tag' && child.name === 'td'
+//         );
+        
+//         const rowData: Record<string, string | number> = {};
+        
+//         cells.forEach((cell, index) => {
+//             const header = headers[index] || `col${index}`;
+            
+//             // Check if cell contains a link (for Name column)
+//             const link = cell.children.find((child): child is Element => 
+//                 child.type === 'tag' && child.name === 'a'
+//             );
+            
+//             if (link) {
+//                 const text = link.firstChild && 'data' in link.firstChild 
+//                     ? link.firstChild.data?.trim() 
+//                     : '';
+//                 rowData[header] = text || '';
+//                 rowData['link'] = link.attribs?.href || '';
+//             } else {
+//                 const text = cell.firstChild && 'data' in cell.firstChild 
+//                     ? cell.firstChild.data?.trim() 
+//                     : '';
+//                 // Try to parse as number
+//                 const num = parseFloat(text || '');
+//                 rowData[header] = isNaN(num) ? (text || '') : num;
+//             }
+//         });
+        
+//         if (Object.keys(rowData).length > 0) {
+//             peerData.push(rowData);
+//         }
+//     });
+
+//     // Extract median row from tfoot
+//     let median: Record<string, string | number> = {};
+//     table.find('tfoot tr td').each((index, cell) => {
+//         const header = headers[index] || `col${index}`;
+//         const text = cell.firstChild && 'data' in cell.firstChild 
+//             ? cell.firstChild.data?.trim() 
+//             : '';
+//         const num = parseFloat(text || '');
+//         median[header] = isNaN(num) ? (text || '') : num;
+//     });
+
+//     return { headers, peers: peerData, median };
+// }
+
+export function processAbsoluteTable(section: Cheerio<Element>) {
+    const table = section.find('table.data-table');
+    
+    // Extract column headers from thead
+    const headers: string[] = [''];  // First column is row label
+    table.find('thead tr th').each((_, th) => {
+        const headerText = th.firstChild && 'data' in th.firstChild 
+            ? th.firstChild.data?.trim() 
+            : '';
+        headers.push(headerText);
+    });
+    // Remove the first empty header that was just a placeholder
+    headers.shift();
+
+    // Extract data rows from tbody
+    const data: Record<string, Record<string, string | number>> = {};
+    
+    table.find('tbody tr').each((_, row) => {
+        const cells = row.children.filter((child): child is Element => 
+            child.type === 'tag' && child.name === 'td'
+        );
+        
+        if (cells.length === 0) return;
+        
+        // First cell is the row label
+        const firstCell = cells[0];
+        let rowLabel = '';
+        
+        // Check for button (expandable rows like Sales, Expenses)
+        const button = firstCell?.children.find((child): child is Element => 
+            child.type === 'tag' && child.name === 'button'
+        );
+        
+        if (button) {
+            // Get text from button, excluding the + span
+            for (const child of button.children) {
+                if (child.type === 'text' && 'data' in child) {
+                    rowLabel += child.data;
+                }
+            }
+            rowLabel = rowLabel.replace(/\s+/g, ' ').trim();
+        } else {
+            // Regular text cell
+            rowLabel = firstCell?.firstChild && 'data' in firstCell.firstChild 
+                ? firstCell.firstChild.data?.trim() || ''
+                : '';
+        }
+        
+        // Skip rows without a proper label (like "Raw PDF" row)
+        if (!rowLabel || rowLabel === 'Raw PDF') return;
+        
+        const rowData: Record<string, string | number> = {};
+        
+        // Process value cells (skip first cell which is the label)
+        cells.slice(1).forEach((cell, index) => {
+            const header = headers[index + 1] || `col${index}`;
+            const text = cell.firstChild && 'data' in cell.firstChild 
+                ? cell.firstChild.data?.trim() 
+                : '';
+            
+            // Parse value - handle percentages and numbers
+            if (text) {
+                if (text.endsWith('%')) {
+                    rowData[header] = text; // Keep percentage as string
+                } else {
+                    const num = parseFloat(text.replace(/,/g, ''));
+                    rowData[header] = isNaN(num) ? text : num;
+                }
+            }
+        });
+        
+        if (Object.keys(rowData).length > 0) {
+            data[rowLabel] = rowData;
+        }
+    });
+
+    return { headers: headers.slice(1), data };
+}
