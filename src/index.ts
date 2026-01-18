@@ -1,6 +1,6 @@
 import * as cheerio from "cheerio";
 import { fetchPage } from "./adapter.js";
-import { getParsedDataFromHtml, processAbsoluteTable, processAnalysis, processPeers } from "./helper.js";
+import { getParsedDataFromHtml, processAbsoluteTable, processAnalysis } from "./helper.js";
 
 export async function ScreenerScraperPro(screenerUrl: string){
     try{
