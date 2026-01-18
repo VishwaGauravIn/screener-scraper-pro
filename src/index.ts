@@ -1,6 +1,6 @@
 import * as cheerio from "cheerio";
 import { fetchPage } from "./adapter.js";
-import { getParsedDataFromHtml, processAbsoluteTable, processAnalysis } from "./helper.js";
+import { getParsedDataFromHtml, processAbsoluteTable, processAnalysis, processDocuments } from "./helper.js";
 
 export async function ScreenerScraperPro(screenerUrl: string){
     try{
@@ -17,6 +17,7 @@ export async function ScreenerScraperPro(screenerUrl: string){
         let cashFlow = {};
         let ratios = {};
         let shareholding = {};
+        let documents = {};
 
         if(parsedDataFromHtml.analysis.length > 0){
             analysis = processAnalysis(parsedDataFromHtml.analysis);
@@ -45,6 +46,10 @@ export async function ScreenerScraperPro(screenerUrl: string){
         if(parsedDataFromHtml.shareholding.length > 0){
             shareholding = processAbsoluteTable(parsedDataFromHtml.shareholding);
         }
+
+        if(parsedDataFromHtml.documents.length > 0){
+            documents = processDocuments(parsedDataFromHtml.documents);
+        }
         
         return {
             analysis,
@@ -53,7 +58,8 @@ export async function ScreenerScraperPro(screenerUrl: string){
             balanceSheet,
             cashFlow,
             ratios,
-            shareholding
+            shareholding,
+            documents
         }
     }catch(error){
         console.error(error); 

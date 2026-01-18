@@ -175,3 +175,123 @@ export function processAbsoluteTable(section: Cheerio<Element>) {
 
     return { headers: headers.slice(1), data };
 }
+
+export function processDocuments(section: Cheerio<Element>) {
+    // Helper to extract text from element
+    const getText = (el: Element | undefined): string => {
+        if (!el) return '';
+        if (el.firstChild && 'data' in el.firstChild) {
+            return el.firstChild.data?.trim() || '';
+        }
+        return '';
+    };
+
+    // Helper to find child elements by tag name
+    const findChild = (el: Element, tagName: string): Element | undefined => {
+        return el.children.find((child): child is Element => 
+            child.type === 'tag' && child.name === tagName
+        );
+    };
+
+    // Helper to find all child elements by tag name
+    const findChildren = (el: Element, tagName: string): Element[] => {
+        return el.children.filter((child): child is Element => 
+            child.type === 'tag' && child.name === tagName
+        );
+    };
+
+    // 1. Parse Announcements
+    const announcements: { title: string; description: string; link: string }[] = [];
+    section.find('.documents:not(.annual-reports):not(.credit-ratings):not(.concalls) ul.list-links li a').each((_, el) => {
+        const link = el.attribs?.href || '';
+        let title = '';
+        let description = '';
+        
+        for (const child of el.children) {
+            if (child.type === 'text' && 'data' in child) {
+                title += child.data;
+            } else if (child.type === 'tag' && child.name === 'div') {
+                description = getText(child);
+            }
+        }
+        
+        if (title.trim()) {
+            announcements.push({ title: title.trim(), description, link });
+        }
+    });
+
+    // 2. Parse Annual Reports
+    const annualReports: { year: string; source: string; link: string }[] = [];
+    section.find('.annual-reports ul.list-links li a').each((_, el) => {
+        const link = el.attribs?.href || '';
+        let year = '';
+        let source = '';
+        
+        for (const child of el.children) {
+            if (child.type === 'text' && 'data' in child) {
+                year += child.data;
+            } else if (child.type === 'tag' && child.name === 'div') {
+                source = getText(child);
+            }
+        }
+        
+        annualReports.push({ year: year.trim(), source, link });
+    });
+
+    // 3. Parse Credit Ratings
+    const creditRatings: { title: string; date: string; source: string; link: string }[] = [];
+    section.find('.credit-ratings ul.list-links li a').each((_, el) => {
+        const link = el.attribs?.href || '';
+        let title = '';
+        let dateSource = '';
+        
+        for (const child of el.children) {
+            if (child.type === 'text' && 'data' in child) {
+                title += child.data;
+            } else if (child.type === 'tag' && child.name === 'div') {
+                dateSource = getText(child);
+            }
+        }
+        
+        // Parse "30 Oct 2025 from crisil" format
+        const match = dateSource.match(/(.+?)\s+from\s+(.+)/i);
+        const date = match?.[1]?.trim() ?? dateSource;
+        const source = match?.[2]?.trim() ?? '';
+        
+        creditRatings.push({ title: title.trim(), date, source, link });
+    });
+
+    // 4. Parse Concalls
+    const concalls: { month: string; transcript?: string; ppt?: string; recording?: string }[] = [];
+    section.find('.concalls ul.list-links li').each((_, li) => {
+        const entry: { month: string; transcript?: string; ppt?: string; recording?: string } = { month: '' };
+        
+        // Get month from the first div
+        const monthDiv = findChild(li, 'div');
+        if (monthDiv) {
+            entry.month = getText(monthDiv);
+        }
+        
+        // Get links
+        const links = findChildren(li, 'a');
+        for (const link of links) {
+            const href = link.attribs?.href || '';
+            const text = getText(link).toLowerCase();
+            
+            if (text.includes('transcript')) {
+                entry.transcript = href;
+            } else if (text === 'ppt') {
+                entry.ppt = href;
+            } else if (text === 'rec') {
+                entry.recording = href;
+            }
+        }
+        
+        if (entry.month) {
+            concalls.push(entry);
+        }
+    });
+
+    return { announcements, annualReports, creditRatings, concalls };
+}
+    
