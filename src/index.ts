@@ -71,5 +71,3 @@ export async function ScreenerScraperPro(screenerUrl: string){
         console.error(error); 
     }
 }
-
-console.log(await ScreenerScraperPro("https://www.screener.in/company/522195/"))

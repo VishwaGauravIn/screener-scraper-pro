@@ -39,6 +39,7 @@ coverage/
 
 # Test output
 test-results/
+test/result.json
 
 # Temporary files
 tmp/
