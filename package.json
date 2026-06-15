@@ -2,12 +2,12 @@
   "name": "screener-scraper-pro",
   "version": "1.0.0",
   "description": "Scrape every data from screener.in website effortlessly and use it in your projects.",
-  "main": "/dist/index.js",
   "type": "module",
   "scripts": {
-    "test": "node test/index.js",
-    "watch": "npx tsc --watch",
-    "build": "npx tsc"
+    "preview-transcript": "node test/preview.js"
+  },
+  "dependencies": {
+    "cheerio": "^1.0.0-rc.12"
   },
   "repository": {
     "type": "git",
@@ -31,11 +31,5 @@
   "bugs": {
     "url": "https://github.com/VishwaGauravIn/screener-scraper-pro/issues"
   },
-  "homepage": "https://github.com/VishwaGauravIn/screener-scraper-pro#readme",
-  "devDependencies": {
-    "typescript": "^5.9.3"
-  },
-  "dependencies": {
-    "cheerio": "^1.1.2"
-  }
+  "homepage": "https://github.com/VishwaGauravIn/screener-scraper-pro#readme"
 }

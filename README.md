@@ -41,7 +41,7 @@ pnpm add screener-scraper-pro
 import { ScreenerScraperPro } from "screener-scraper-pro";
 
 // Use any screener.in company URL
-const data = await ScreenerScraperPro("https://www.screener.in/company/RELIANCE/");
+const data = await ScreenerScraperPro("https://www.screener.in/company/SAILIFE/");
 
 console.log(data.analysis);      // { pros: [...], cons: [...] }
 console.log(data.CAGRs);         // Growth rates over different periods
@@ -49,6 +49,30 @@ console.log(data.quarters);      // Quarterly financial results
 console.log(data.profitLoss);    // Annual P&L statements
 console.log(data.balanceSheet);  // Balance sheet data
 ```
+
+## 🖥️ Local PDF Preview Workflow
+
+This project now includes a local preview script that downloads a transcript PDF for the company you provide and previews the latest requested file.
+
+1. Install dependencies:
+
+```bash
+npm install
+```
+
+2. Run with a company ticker:
+
+```bash
+node test/preview.js SAILIFE
+```
+
+3. The script saves the preview files to `test/Q4FY26`:
+   - `test/Q4FY26/transcript-SAILIFE.pdf`
+   - `test/Q4FY26/result.json`
+
+4. If you rerun with a new company, the latest requested company is used for preview.
+
+If the browser does not open automatically, visit the URL printed in the terminal.
 
 ## 📊 Data Structure
 
@@ -1020,7 +1044,7 @@ data.documents.annualReports.forEach(report => {
       {
         "year": "Financial Year 2013",
         "source": "from nse",
-        "link": "https://archives.nseindia.com/annual_reports/AR_19_RELIANCE_2012_2013_08052013171218.zip"
+        "link": "https://archives.nseindia.com/annual_reports/AR_19_SAILIFE_2012_2013_08052013171218.zip"
       },
       {
         "year": "Financial Year 2013",
@@ -1038,7 +1062,7 @@ data.documents.annualReports.forEach(report => {
         "title": "Rating update",
         "date": "30 Oct 2025",
         "source": "crisil",
-        "link": "https://www.crisil.com/mnt/winshare/Ratings/RatingList/RatingDocs/RelianceIndustriesLimited_October 30_ 2025_RR_379987.html"
+        "link": "https://www.crisil.com/mnt/winshare/Ratings/RatingList/RatingDocs/SAILIFEIndustriesLimited_October 30_ 2025_RR_379987.html"
       },
       {
         "title": "Rating update",
@@ -1050,13 +1074,13 @@ data.documents.annualReports.forEach(report => {
         "title": "Rating update",
         "date": "4 Jul 2025",
         "source": "care",
-        "link": "https://www.careratings.com/upload/CompanyFiles/PR/202507130705_Reliance_Industries_Limited.pdf"
+        "link": "https://www.careratings.com/upload/CompanyFiles/PR/202507130705_SAILIFE_Industries_Limited.pdf"
       },
       {
         "title": "Rating update",
         "date": "30 Jun 2025",
         "source": "crisil",
-        "link": "https://www.crisil.com/mnt/winshare/Ratings/RatingList/RatingDocs/RelianceIndustriesLimited_June 30_ 2025_RR_372910.html"
+        "link": "https://www.crisil.com/mnt/winshare/Ratings/RatingList/RatingDocs/SAILIFEIndustriesLimited_June 30_ 2025_RR_372910.html"
       },
       {
         "title": "Rating update",
@@ -1301,10 +1325,10 @@ The package supports various screener.in URL formats:
 
 ```javascript
 // Standard company page
-"https://www.screener.in/company/RELIANCE/"
+"https://www.screener.in/company/SAILIFE/"
 
 // Consolidated financials
-"https://www.screener.in/company/RELIANCE/consolidated/"
+"https://www.screener.in/company/SAILIFE/consolidated/"
 
 // By BSE/NSE code
 "https://www.screener.in/company/500325/"
