@@ -66,7 +66,9 @@ npm install
 node test/preview.js SAILIFE
 ```
 
-3. The script saves `test/transcript-SAILIFE.pdf` and opens the local preview page.
+3. The script saves the preview files to `test/Q4FY26`:
+   - `test/Q4FY26/transcript-SAILIFE.pdf`
+   - `test/Q4FY26/result.json`
 
 4. If you rerun with a new company, the latest requested company is used for preview.
 

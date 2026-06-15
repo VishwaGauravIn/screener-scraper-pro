@@ -8,37 +8,79 @@ import { exec } from 'child_process';
 import { ScreenerScraperPro } from '../dist/index.js';
 
 // Preview script changes:
-// - accepts a company ticker via CLI argument or COMPANY env var
-// - prompts for a ticker if none is supplied
-// - downloads a transcript PDF named transcript-<COMPANY>.pdf
-// - saves the latest request metadata in test/result.json
-// - reuses the last requested company for preview when no new ticker is provided
+// - accepts one or more company tickers via CLI arguments or COMPANY env var
+// - downloads each transcript PDF named <COMPANY>.pdf
+// - saves the PDFs in test/Q4FY26
+// - if no company is provided, uses the latest PDF in test/Q4FY26
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-const resultFile = path.join(__dirname, 'result.json');
-let currentPdfPath = path.join(__dirname, 'transcript.pdf');
+const resultDir = path.join(__dirname, 'Q4FY26');
+let currentPdfPath = '';
 let currentCompany = '';
+
+async function promptForCompanies() {
+  const rl = readline.createInterface({ input, output });
+  console.log('Enter company tickers, one per line. Submit an empty line to finish.');
+
+  const companies = [];
+  while (true) {
+    const line = await rl.question('> ');
+    const company = line.trim().toUpperCase();
+    if (!company) break;
+    companies.push(company);
+  }
+
+  rl.close();
+  return companies;
+}
+
+function resolveCompanies() {
+  const companies = process.argv
+    .slice(2)
+    .filter((arg) => !arg.startsWith('--'))
+    .map(arg => arg.trim().toUpperCase())
+    .filter(Boolean);
+
+  if (companies.length) {
+    return companies;
+  }
+
+  const envCompany = process.env.COMPANY ? process.env.COMPANY.trim().toUpperCase() : '';
+  return envCompany ? [envCompany] : [];
+}
+
+async function ensureResultDir() {
+  await fs.mkdir(resultDir, { recursive: true });
+}
 
 function sanitizeCompany(company) {
   return String(company || '').trim().toUpperCase().replace(/[^A-Z0-9_-]/g, '');
 }
 
-function resolveCompanyArg() {
-  const arg = process.argv[2] || process.env.COMPANY;
-  return sanitizeCompany(arg);
-}
+async function findLatestPdf() {
+  await ensureResultDir();
+  const entries = await fs.readdir(resultDir, { withFileTypes: true });
+  const pdfFiles = entries
+    .filter((entry) => entry.isFile() && entry.name.toLowerCase().endsWith('.pdf'))
+    .map((entry) => entry.name);
 
-async function loadLastResult() {
-  try {
-    const raw = await fs.readFile(resultFile, 'utf8');
-    return JSON.parse(raw);
-  } catch {
+  if (!pdfFiles.length) {
     return null;
   }
-}
 
-async function saveResult(result) {
-  await fs.writeFile(resultFile, JSON.stringify(result, null, 2));
+  let latestFile = null;
+  let latestMtime = 0;
+
+  for (const file of pdfFiles) {
+    const filePath = path.join(resultDir, file);
+    const stat = await fs.stat(filePath);
+    if (stat.mtimeMs > latestMtime) {
+      latestMtime = stat.mtimeMs;
+      latestFile = filePath;
+    }
+  }
+
+  return latestFile;
 }
 
 async function downloadTranscriptForCompany(company) {
@@ -61,58 +103,65 @@ async function downloadTranscriptForCompany(company) {
   }
 
   const buffer = await response.arrayBuffer();
-  const pdfName = `transcript-${company}.pdf`;
-  const outPath = path.join(__dirname, pdfName);
+  const pdfName = `${company}.pdf`;
+  const outPath = path.join(resultDir, pdfName);
+  await ensureResultDir();
   await fs.writeFile(outPath, Buffer.from(buffer));
 
   currentPdfPath = outPath;
   currentCompany = company;
 
-  await saveResult({
-    company,
-    screenerUrl,
-    transcriptUrl,
-    pdfPath: outPath,
-    fetchedAt: new Date().toISOString(),
-  });
-
   console.log('Saved transcript to', outPath);
   return { company, outPath };
 }
 
-async function promptForCompany() {
-  const rl = readline.createInterface({ input, output });
-  const answer = await rl.question('Enter company ticker for preview: ');
-  rl.close();
-  return sanitizeCompany(answer);
-}
-
 async function ensurePreviewTarget() {
-  let companyArg = resolveCompanyArg();
-  if (!companyArg) {
-    console.log('No company provided via CLI or COMPANY env var. Prompting for one now.');
-    companyArg = await promptForCompany();
+  let companies = resolveCompanies();
+
+  if (!companies.length) {
+    companies = await promptForCompanies();
   }
 
-  if (companyArg) {
-    return downloadTranscriptForCompany(companyArg);
-  }
+  if (companies.length) {
+    const successes = [];
+    const failures = [];
+    let lastResult = null;
 
-  const lastResult = await loadLastResult();
-  if (lastResult?.company && lastResult?.pdfPath) {
-    currentCompany = lastResult.company;
-    currentPdfPath = lastResult.pdfPath;
-
-    const exists = await fs.stat(currentPdfPath).then(() => true).catch(() => false);
-    if (!exists) {
-      throw new Error(`Latest company PDF not found at ${currentPdfPath}. Provide a company ticker to regenerate.`);
+    for (const company of companies) {
+      try {
+        lastResult = await downloadTranscriptForCompany(company);
+        successes.push(company);
+      } catch (error) {
+        console.error(`Failed to download ${company}:`, error.message);
+        failures.push(company);
+      }
     }
 
-    console.log('Using latest company from result.json:', currentCompany);
+    console.log('\nDownload summary:');
+    if (successes.length) {
+      console.log('  succeeded:', successes.join(', '));
+    }
+    if (failures.length) {
+      console.log('  failed:   ', failures.join(', '));
+    }
+
+    if (lastResult) {
+      return lastResult;
+    }
+
+    throw new Error('No PDF was successfully downloaded. Check the failed companies and try again.');
+  }
+
+  const latestPdf = await findLatestPdf();
+  if (latestPdf) {
+    currentPdfPath = latestPdf;
+    currentCompany = path.basename(latestPdf, '.pdf');
+
+    console.log('Using latest PDF in test/Q4FY26:', currentCompany);
     return { company: currentCompany, outPath: currentPdfPath };
   }
 
-  throw new Error('No company provided and no previous preview available. Use: node test/preview.js SAILIFE');
+  throw new Error('No company provided and no existing PDF preview. Use: node test/preview.js HCLTECH');
 }
 
 function renderHomePage() {
