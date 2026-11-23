@@ -11,7 +11,7 @@ import { z } from "zod";
 import { ScreenerScraperPro } from "./index.js";
 
 const BASE_URL = "https://www.screener.in";
-const CACHE_TTL_MS = 5 * 60 * 1000;
+const CACHE_TTL_MS = 10 * 60 * 1000;
 
 type Report = Awaited<ReturnType<typeof ScreenerScraperPro>>;
 

@@ -126,56 +126,8 @@ claude mcp add screener -- node /path/to/screener-scraper-pro/dist/mcp.js
 }
 ```
 
-| Client | macOS / Linux | Windows |
-|--------|---------------|---------|
-| Claude Desktop | `~/Library/Application Support/Claude/claude_desktop_config.json` (macOS) | `%APPDATA%\Claude\claude_desktop_config.json` |
-| Cursor | `~/.cursor/mcp.json` | `%USERPROFILE%\.cursor\mcp.json` |
-| Windsurf | `~/.codeium/windsurf/mcp_config.json` | `%USERPROFILE%\.codeium\windsurf\mcp_config.json` |
-| Antigravity | `~/.gemini/antigravity/mcp_config.json` | `%USERPROFILE%\.gemini\antigravity\mcp_config.json` |
-| Gemini CLI | `~/.gemini/settings.json` | `%USERPROFILE%\.gemini\settings.json` |
-
-You can also open these from the app itself: in Claude Desktop via Settings → Developer → Edit Config, in Antigravity via the Agent panel → `...` → MCP Servers → Manage MCP Servers → View raw config. Cursor and Gemini CLI also accept a per-project file (`.cursor/mcp.json`, `.gemini/settings.json`) in the project folder.
-
-**OpenCode**: in `opencode.json` in your project, or globally in `~/.config/opencode/opencode.json` (Windows: `%USERPROFILE%\.config\opencode\opencode.json`):
-
-```json
-{
-  "$schema": "https://opencode.ai/config.json",
-  "mcp": {
-    "screener": {
-      "type": "local",
-      "command": ["node", "/path/to/screener-scraper-pro/dist/mcp.js"],
-      "enabled": true
-    }
-  }
-}
-```
-
-**VS Code (GitHub Copilot agent mode)**: in `.vscode/mcp.json` in your project (same on all platforms):
-
-```json
-{
-  "servers": {
-    "screener": {
-      "type": "stdio",
-      "command": "node",
-      "args": ["/path/to/screener-scraper-pro/dist/mcp.js"]
-    }
-  }
-}
-```
-
-**Codex CLI**: in `~/.codex/config.toml` (Windows: `%USERPROFILE%\.codex\config.toml`):
-
-```toml
-[mcp_servers.screener]
-command = "node"
-args = ["/path/to/screener-scraper-pro/dist/mcp.js"]
-```
 
 Restart the agent after adding the config. Any other MCP client that supports **stdio** servers works the same way: the command is `node` and the argument is the path to `dist/mcp.js`.
-
-> Once a version with the MCP server is published to npm, you can skip the clone and use `npx -y screener-scraper-pro` as the command instead of `node /path/to/.../dist/mcp.js`.
 
 ### Tools
 
@@ -189,7 +141,7 @@ Restart the agent after adding the config. Any other MCP client that supports **
 | `get_full_report` | `symbol`, `standalone?` | Everything (large, ~10k tokens) |
 
 - **Consolidated by default.** Tools return consolidated figures (parent + subsidiaries), like screener.in shows by default. Pass `standalone: true` for the parent company only. If a company has no current consolidated figures, standalone is returned with a `note`. Every response has a `basis` field saying which one you got.
-- Results are cached for 5 minutes, so several questions about the same company make one request to screener.in.
+- Results are cached for 10 minutes, so several questions about the same company make one request to screener.in.
 
 ## 📋 Sample Full Response
 
