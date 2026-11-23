@@ -92,6 +92,53 @@ data.documents.annualReports.forEach(report => {
 });
 ```
 
+## 🤖 Use as an MCP Server
+
+This package also ships an [MCP](https://modelcontextprotocol.io) server, so AI assistants like Claude Desktop, Claude Code and Cursor can look up Indian stock data for you, e.g. *"Compare FII holding in TCS and Infosys over the last year"*.
+
+### Setup
+
+**Claude Code**
+
+```bash
+claude mcp add screener -- npx -y screener-scraper-pro
+```
+
+**Claude Desktop / Cursor / other clients**: add this to the client's MCP config (for Claude Desktop: `claude_desktop_config.json`):
+
+```json
+{
+  "mcpServers": {
+    "screener": {
+      "command": "npx",
+      "args": ["-y", "screener-scraper-pro"]
+    }
+  }
+}
+```
+
+**From a local clone** (for development)
+
+```bash
+npm install          # also builds dist/
+claude mcp add screener -- node /path/to/screener-scraper-pro/dist/mcp.js
+npm run inspect      # opens the MCP Inspector to try the tools in a browser
+```
+
+### Tools
+
+| Tool | Input | Returns |
+|------|-------|---------|
+| `search_company` | `query` (company name) | Matching companies and their screener symbols |
+| `get_company_overview` | `symbol`, `standalone?` | Name, about, price, market cap, P/E, book value, dividend yield, ROCE, ROE, high/low, pros & cons, CAGRs |
+| `get_financials` | `symbol`, `section`, `standalone?` | One table: `quarters`, `profitLoss`, `balanceSheet`, `cashFlow` or `ratios` |
+| `get_shareholding` | `symbol`, `period?` (`quarterly` / `yearly` / `both`) | Promoters, FIIs, DIIs, Government, Public %, number of shareholders |
+| `get_documents` | `symbol`, `type?`, `limit?` | Announcements, annual reports, credit ratings, concall transcripts |
+| `get_full_report` | `symbol`, `standalone?` | Everything (large, ~10k tokens) |
+
+- **Consolidated by default.** Tools return consolidated figures (parent + subsidiaries), like screener.in shows by default. Pass `standalone: true` for the parent company only. If a company has no current consolidated figures, standalone is returned with a `note`. Every response has a `basis` field saying which one you got.
+- Results are cached for 5 minutes, so several questions about the same company make one request to screener.in.
+
 ## 📋 Sample Full Response
 
 ```json
