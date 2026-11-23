@@ -94,36 +94,88 @@ data.documents.annualReports.forEach(report => {
 
 ## 🤖 Use as an MCP Server
 
-This package also ships an [MCP](https://modelcontextprotocol.io) server, so AI assistants like Claude Desktop, Claude Code and Cursor can look up Indian stock data for you, e.g. *"Compare FII holding in TCS and Infosys over the last year"*.
+This package also ships an [MCP](https://modelcontextprotocol.io) server, so AI assistants and coding agents like Claude Code, Claude Desktop, Cursor, Antigravity, OpenCode and others can look up Indian stock data for you, e.g. *"Compare FII holding in TCS and Infosys over the last year"*.
 
-### Setup
+### 1. Get the server
+
+```bash
+git clone https://github.com/VishwaGauravIn/screener-scraper-pro.git
+cd screener-scraper-pro
+npm install          # installs dependencies and builds dist/
+```
+
+
+### 2. Connect your agent
 
 **Claude Code**
 
 ```bash
-claude mcp add screener -- npx -y screener-scraper-pro
+claude mcp add screener -- node /path/to/screener-scraper-pro/dist/mcp.js
 ```
 
-**Claude Desktop / Cursor / other clients**: add this to the client's MCP config (for Claude Desktop: `claude_desktop_config.json`):
+**Claude Desktop, Cursor, Windsurf, Antigravity, Gemini CLI**: these all use the same `mcpServers` format:
 
 ```json
 {
   "mcpServers": {
     "screener": {
-      "command": "npx",
-      "args": ["-y", "screener-scraper-pro"]
+      "command": "node",
+      "args": ["/path/to/screener-scraper-pro/dist/mcp.js"]
     }
   }
 }
 ```
 
-**From a local clone** (for development)
+| Client | macOS / Linux | Windows |
+|--------|---------------|---------|
+| Claude Desktop | `~/Library/Application Support/Claude/claude_desktop_config.json` (macOS) | `%APPDATA%\Claude\claude_desktop_config.json` |
+| Cursor | `~/.cursor/mcp.json` | `%USERPROFILE%\.cursor\mcp.json` |
+| Windsurf | `~/.codeium/windsurf/mcp_config.json` | `%USERPROFILE%\.codeium\windsurf\mcp_config.json` |
+| Antigravity | `~/.gemini/antigravity/mcp_config.json` | `%USERPROFILE%\.gemini\antigravity\mcp_config.json` |
+| Gemini CLI | `~/.gemini/settings.json` | `%USERPROFILE%\.gemini\settings.json` |
 
-```bash
-npm install          # also builds dist/
-claude mcp add screener -- node /path/to/screener-scraper-pro/dist/mcp.js
-npm run inspect      # opens the MCP Inspector to try the tools in a browser
+You can also open these from the app itself: in Claude Desktop via Settings → Developer → Edit Config, in Antigravity via the Agent panel → `...` → MCP Servers → Manage MCP Servers → View raw config. Cursor and Gemini CLI also accept a per-project file (`.cursor/mcp.json`, `.gemini/settings.json`) in the project folder.
+
+**OpenCode**: in `opencode.json` in your project, or globally in `~/.config/opencode/opencode.json` (Windows: `%USERPROFILE%\.config\opencode\opencode.json`):
+
+```json
+{
+  "$schema": "https://opencode.ai/config.json",
+  "mcp": {
+    "screener": {
+      "type": "local",
+      "command": ["node", "/path/to/screener-scraper-pro/dist/mcp.js"],
+      "enabled": true
+    }
+  }
+}
 ```
+
+**VS Code (GitHub Copilot agent mode)**: in `.vscode/mcp.json` in your project (same on all platforms):
+
+```json
+{
+  "servers": {
+    "screener": {
+      "type": "stdio",
+      "command": "node",
+      "args": ["/path/to/screener-scraper-pro/dist/mcp.js"]
+    }
+  }
+}
+```
+
+**Codex CLI**: in `~/.codex/config.toml` (Windows: `%USERPROFILE%\.codex\config.toml`):
+
+```toml
+[mcp_servers.screener]
+command = "node"
+args = ["/path/to/screener-scraper-pro/dist/mcp.js"]
+```
+
+Restart the agent after adding the config. Any other MCP client that supports **stdio** servers works the same way: the command is `node` and the argument is the path to `dist/mcp.js`.
+
+> Once a version with the MCP server is published to npm, you can skip the clone and use `npx -y screener-scraper-pro` as the command instead of `node /path/to/.../dist/mcp.js`.
 
 ### Tools
 
