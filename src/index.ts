@@ -2,7 +2,9 @@ import * as cheerio from "cheerio";
 import { fetchPage } from "./adapter.js";
 import { getParsedDataFromHtml, processAbsoluteTable, processAnalysis, processCompanyInfo, processDocuments, processPnlToFindCAGRs, processShareholding, processTopRatios } from "./helper.js";
 
-// Errors (network failure, unknown company, unexpected page) are thrown to the caller.
+// No try/catch here on purpose. Earlier errors were caught and it returned undefined,
+// so the caller never knew what went wrong. Now errors (wrong symbol, no internet etc.)
+// are thrown, and the caller can handle them.
 export async function ScreenerScraperPro(screenerUrl: string){
     const html = await fetchPage(screenerUrl);
     const cheerioObj = cheerio.load(html);
@@ -10,6 +12,8 @@ export async function ScreenerScraperPro(screenerUrl: string){
 
     const parsedDataFromHtml = getParsedDataFromHtml(parsedHtml);
 
+    // If none of the usual sections are there, it's not a company page,
+    // so throw instead of returning a bunch of empty objects
     if (parsedHtml('#top-ratios').length === 0 && parsedDataFromHtml.profitLoss.length === 0) {
         throw new Error(`The page at ${screenerUrl} does not look like a screener.in company page`);
     }

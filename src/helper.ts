@@ -97,7 +97,7 @@ export function processAnalysis(analysis: Cheerio<Element>) {
 //     return { headers, peers: peerData, median };
 // }
 
-// All text inside an element (including nested tags), with whitespace collapsed.
+// Gets all the text inside a tag (nested tags too) and cleans up extra spaces and newlines.
 function parsedText(el: Element): string {
     let text = '';
     const walk = (node: Element['children'][number]) => {
@@ -109,14 +109,14 @@ function parsedText(el: Element): string {
 }
 
 export function processAbsoluteTable(section: Cheerio<Element>) {
-    // Only read the first table. Some sections (e.g. shareholding) contain more than
-    // one table, and merging them mixes up headers and overwrites rows.
+    // Some sections have more than one table (shareholding has quarterly + yearly).
+    // Reading all of them together mixed up the dates and values, so only take the first one.
     const table = section.find('table.data-table').first();
     
     // Extract column headers from thead
     const headers: string[] = [''];  // First column is row label
     table.find('thead tr th').each((_, th) => {
-        // Collapse whitespace: some headers are like "Mar 2026\n   (S)" (S = standalone figure)
+        // Some headers come with newlines inside, like "Mar 2026\n   (S)", so clean them up
         const headerText = th.firstChild && 'data' in th.firstChild
             ? parsedText(th)
             : '';
@@ -190,7 +190,8 @@ export function processAbsoluteTable(section: Cheerio<Element>) {
     return { headers: headers.slice(1), data };
 }
 
-// Shareholding has two separate tables: quarterly and yearly.
+// Shareholding has 2 tables in the HTML, one for the Quarterly tab and one for the Yearly tab.
+// Read them separately so each value stays under its own date.
 export function processShareholding(section: Cheerio<Element>) {
     const quarterlySection = section.find('#quarterly-shp');
     const yearlySection = section.find('#yearly-shp');
@@ -200,8 +201,8 @@ export function processShareholding(section: Cheerio<Element>) {
     };
 }
 
-// The key ratios box at the top of the page (Market Cap, Current Price, P/E, ...).
-// Values are kept as display text because they carry units (₹, Cr., %).
+// The box at the top of the page with Market Cap, Current Price, P/E, ROE etc.
+// Values are kept as text because they have ₹, Cr. and % in them.
 export function processTopRatios(parsedHtml: CheerioAPI) {
     const ratios: Record<string, string> = {};
     parsedHtml('#top-ratios li').each((_, li) => {
@@ -212,13 +213,15 @@ export function processTopRatios(parsedHtml: CheerioAPI) {
     return ratios;
 }
 
-// Company name, "About" text and whether the figures are consolidated or standalone.
+// Company name, about text, and whether the numbers are consolidated or standalone.
+// The normal URL gives standalone and /consolidated/ gives consolidated, and for big
+// companies they can be very different, so it's useful to know which one you got.
 export function processCompanyInfo(parsedHtml: CheerioAPI) {
     const name = parsedHtml('h1').first().text().replace(/\s+/g, ' ').trim();
     const about = parsedHtml('.company-profile .about').first().text().replace(/\s+/g, ' ').trim();
 
-    // Each financial section has a line like "Consolidated Figures in Rs. Crores / View Standalone"
-    // (sections contain other .sub elements too, so pick the one that mentions "Figures")
+    // Under each table heading there's a line like "Consolidated Figures in Rs. Crores".
+    // There are other .sub lines too, so pick the one that has "Figures" in it.
     const figuresLine = parsedHtml('#profit-loss .sub, #quarters .sub, #balance-sheet .sub')
         .map((_, el) => parsedHtml(el).text())
         .toArray()
@@ -226,7 +229,7 @@ export function processCompanyInfo(parsedHtml: CheerioAPI) {
     let basis: 'consolidated' | 'standalone' | 'unknown' = 'unknown';
     if (/consolidated\s+figures/i.test(figuresLine)) basis = 'consolidated';
     else if (/standalone\s+figures/i.test(figuresLine)) basis = 'standalone';
-    // Companies without subsidiaries only have one set of figures: "Figures in Rs. Crores"
+    // Companies with no subsidiaries just say "Figures in Rs. Crores", which is standalone
     else if (/figures\s+in/i.test(figuresLine)) basis = 'standalone';
 
     return { name, about, basis };
