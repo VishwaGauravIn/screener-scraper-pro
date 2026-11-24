@@ -2,12 +2,22 @@
   "name": "screener-scraper-pro",
   "version": "1.0.0",
   "description": "Scrape every data from screener.in website effortlessly and use it in your projects.",
-  "main": "/dist/index.js",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "bin": {
+    "screener-scraper-pro": "dist/mcp.js"
+  },
+  "files": [
+    "dist"
+  ],
   "type": "module",
   "scripts": {
     "test": "node test/index.js",
     "watch": "npx tsc --watch",
-    "build": "npx tsc"
+    "build": "npx tsc",
+    "prepare": "npx tsc",
+    "mcp": "node dist/mcp.js",
+    "inspect": "npx @modelcontextprotocol/inspector node dist/mcp.js"
   },
   "repository": {
     "type": "git",
@@ -33,9 +43,12 @@
   },
   "homepage": "https://github.com/VishwaGauravIn/screener-scraper-pro#readme",
   "devDependencies": {
+    "@types/node": "^26.6.6",
     "typescript": "^5.9.3"
   },
   "dependencies": {
-    "cheerio": "^1.1.2"
+    "@modelcontextprotocol/sdk": "^1.32.2",
+    "cheerio": "^1.1.2",
+    "zod": "^4.6.7"
   }
 }
