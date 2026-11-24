@@ -97,14 +97,28 @@ export function processAnalysis(analysis: Cheerio<Element>) {
 //     return { headers, peers: peerData, median };
 // }
 
+// Gets all the text inside a tag (nested tags too) and cleans up extra spaces and newlines.
+function parsedText(el: Element): string {
+    let text = '';
+    const walk = (node: Element['children'][number]) => {
+        if (node.type === 'text' && 'data' in node) text += node.data;
+        else if ('children' in node) node.children.forEach(walk);
+    };
+    el.children.forEach(walk);
+    return text.replace(/\s+/g, ' ').trim();
+}
+
 export function processAbsoluteTable(section: Cheerio<Element>) {
-    const table = section.find('table.data-table');
+    // Some sections have more than one table (shareholding has quarterly + yearly).
+    // Reading all of them together mixed up the dates and values, so only take the first one.
+    const table = section.find('table.data-table').first();
     
     // Extract column headers from thead
     const headers: string[] = [''];  // First column is row label
     table.find('thead tr th').each((_, th) => {
-        const headerText = th.firstChild && 'data' in th.firstChild 
-            ? th.firstChild.data?.trim() 
+        // Some headers come with newlines inside, like "Mar 2026\n   (S)", so clean them up
+        const headerText = th.firstChild && 'data' in th.firstChild
+            ? parsedText(th)
             : '';
         headers.push(headerText);
     });
@@ -174,6 +188,51 @@ export function processAbsoluteTable(section: Cheerio<Element>) {
     });
 
     return { headers: headers.slice(1), data };
+}
+
+// Shareholding has 2 tables in the HTML, one for the Quarterly tab and one for the Yearly tab.
+// Read them separately so each value stays under its own date.
+export function processShareholding(section: Cheerio<Element>) {
+    const quarterlySection = section.find('#quarterly-shp');
+    const yearlySection = section.find('#yearly-shp');
+    return {
+        quarterly: quarterlySection.length > 0 ? processAbsoluteTable(quarterlySection) : {},
+        yearly: yearlySection.length > 0 ? processAbsoluteTable(yearlySection) : {},
+    };
+}
+
+// The box at the top of the page with Market Cap, Current Price, P/E, ROE etc.
+// Values are kept as text because they have ₹, Cr. and % in them.
+export function processTopRatios(parsedHtml: CheerioAPI) {
+    const ratios: Record<string, string> = {};
+    parsedHtml('#top-ratios li').each((_, li) => {
+        const name = parsedHtml(li).find('.name').text().replace(/\s+/g, ' ').trim();
+        const value = parsedHtml(li).find('.value').text().replace(/\s+/g, ' ').trim();
+        if (name && value) ratios[name] = value;
+    });
+    return ratios;
+}
+
+// Company name, about text, and whether the numbers are consolidated or standalone.
+// The normal URL gives standalone and /consolidated/ gives consolidated, and for big
+// companies they can be very different, so it's useful to know which one you got.
+export function processCompanyInfo(parsedHtml: CheerioAPI) {
+    const name = parsedHtml('h1').first().text().replace(/\s+/g, ' ').trim();
+    const about = parsedHtml('.company-profile .about').first().text().replace(/\s+/g, ' ').trim();
+
+    // Under each table heading there's a line like "Consolidated Figures in Rs. Crores".
+    // There are other .sub lines too, so pick the one that has "Figures" in it.
+    const figuresLine = parsedHtml('#profit-loss .sub, #quarters .sub, #balance-sheet .sub')
+        .map((_, el) => parsedHtml(el).text())
+        .toArray()
+        .find((text) => /figures/i.test(text)) ?? '';
+    let basis: 'consolidated' | 'standalone' | 'unknown' = 'unknown';
+    if (/consolidated\s+figures/i.test(figuresLine)) basis = 'consolidated';
+    else if (/standalone\s+figures/i.test(figuresLine)) basis = 'standalone';
+    // Companies with no subsidiaries just say "Figures in Rs. Crores", which is standalone
+    else if (/figures\s+in/i.test(figuresLine)) basis = 'standalone';
+
+    return { name, about, basis };
 }
 
 export function processDocuments(section: Cheerio<Element>) {

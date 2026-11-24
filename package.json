@@ -2,7 +2,11 @@
   "name": "screener-scraper-pro",
   "version": "1.0.0",
   "description": "Scrape every data from screener.in website effortlessly and use it in your projects.",
-  "main": "/dist/index.js",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
   "type": "module",
   "scripts": {
     "test": "node test/index.js",
